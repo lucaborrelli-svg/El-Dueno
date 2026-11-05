@@ -1,0 +1,33 @@
+{% macro team_shirt(team, shirt_id) -%}
+<svg class="team-shirt" viewBox="0 0 100 100" role="img"
+     aria-label="Camiseta de {{ team.name }}" data-pattern="{{ team.shirt_pattern }}">
+  <title>Camiseta de {{ team.name }}</title>
+  <defs>
+    <clipPath id="shirt-clip-{{ shirt_id }}">
+      <path d="M34 10 42 5h16l8 5 18 7 11 19-13 9-9-10v51Q50 96 27 86V35l-9 10L5 36l11-19z"/>
+    </clipPath>
+  </defs>
+  <path class="team-shirt-base" fill="{{ team.shirt_primary }}"
+        d="M34 10 42 5h16l8 5 18 7 11 19-13 9-9-10v51Q50 96 27 86V35l-9 10L5 36l11-19z"/>
+  {% if team.shirt_pattern == 'stripes' %}
+  <g clip-path="url(#shirt-clip-{{ shirt_id }})" fill="{{ team.shirt_secondary }}">
+    <path d="M32 0h10v100H32zm22 0h10v100H54zm22 0h10v100H76z"/>
+  </g>
+  {% elif team.shirt_pattern == 'hoops' %}
+  <g clip-path="url(#shirt-clip-{{ shirt_id }})" fill="{{ team.shirt_secondary }}">
+    <path d="M0 27h100v10H0zm0 25h100v10H0zm0 25h100v10H0z"/>
+  </g>
+  {% elif team.shirt_pattern == 'diagonal' %}
+  <g clip-path="url(#shirt-clip-{{ shirt_id }})" fill="none" stroke="{{ team.shirt_secondary }}" stroke-width="9">
+    <path d="m8 70 53-62m1 95 39-45"/>
+  </g>
+  {% elif team.shirt_pattern == 'halves' %}
+  <path clip-path="url(#shirt-clip-{{ shirt_id }})" fill="{{ team.shirt_secondary }}" d="M50 0h55v100H50z"/>
+  {% endif %}
+  <path class="team-shirt-outline" fill="none" stroke="{{ team.shirt_secondary }}" stroke-width="4"
+        stroke-linejoin="round"
+        d="M34 10 42 5h16l8 5 18 7 11 19-13 9-9-10v51Q50 96 27 86V35l-9 10L5 36l11-19z"/>
+  <path fill="none" stroke="{{ team.shirt_secondary }}" stroke-width="3"
+        d="M42 6q8 17 16 0"/>
+</svg>
+{%- endmacro %}

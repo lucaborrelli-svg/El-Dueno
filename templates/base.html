@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f12">
+  <title>{% block title %}El Dueño{% endblock %} · Modo carrera</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='20261103.15') }}">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">E</span><span>EL DUEÑO<span class="brand-dot">.</span><small>MODO CARRERA</small></span></a>
+    {% if career %}
+    <a class="topbar-nav" href="{{ url_for('dashboard') }}">CLUB</a>
+    {% if career.phase == 'market' %}<a class="topbar-nav" href="{{ url_for('market') }}">MERCADO</a>{% endif %}
+    <a class="topbar-nav" href="{{ url_for('fixtures') }}">{% if career.phase == 'season' %}TORNEO{% else %}CALENDARIO{% endif %}</a>
+    <a class="topbar-nav" href="{{ url_for('copa_argentina') }}">COPA ARGENTINA</a>
+    <div class="topbar-club"><img src="{{ url_for('club_crest') }}" alt="Escudo {{ career.club_name }}" class="topbar-crest"><span class="online-dot"></span> {{ career.club_name }} <span class="division-tag">{{ career.division }}</span></div>
+    <form method="post" action="{{ url_for('reset') }}" class="reset-form" onsubmit="return confirm('¿Seguro que querés borrar esta carrera y crear otra?');"><button class="quiet-link" type="submit">Nueva carrera</button></form>
+    {% endif %}
+  </header>
+  <main class="page-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer"><span>EL DUEÑO <span class="brand-dot">·</span> 2026</span><span>Tu club. Tus decisiones. Tu historia.</span></footer>
+</body>
+</html>

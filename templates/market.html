@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}Mercado de pases{% endblock %}
+{% block content %}
+<div class="dashboard-heading">
+  <div>
+    <p class="eyebrow"><span class="eyebrow-line"></span> TEMPORADA {{ season_number }} <span class="eyebrow-separator">/</span> MERCADO DE PASES</p>
+    <h1>Es hora de <em>reforzar.</em></h1>
+    <p class="muted">Buscá incorporaciones para {{ career.club_name }}. En Primera División, los pases pueden llegar hasta $5.000.000; en Primera Nacional, hasta $2.000.000.</p>
+  </div>
+  <div class="header-actions-wrap">
+    <div class="date-chip budget-chip"><span>PRESUPUESTO</span><strong>{{ career.budget|money }}</strong></div>
+  </div>
+</div>
+<section class="market-summary">
+  <div><span class="summary-icon">♙</span><span><strong>{{ total_players }}</strong><small>jugadores disponibles</small></span></div>
+  <div><span class="summary-icon">⌂</span><span><strong>{{ career.division }}</strong><small>categoría de tu club</small></span></div>
+  <div><span class="summary-icon">◎</span><span><strong>{{ squad|length }}/{{ max_squad_size }}</strong><small>{% if squad|length >= max_squad_size %}límite alcanzado · comenzá la temporada o vendé{% else %}jugadores · podés incorporar {{ max_squad_size - squad|length }} más{% endif %}</small></span></div>
+  <div class="sync-status-box">
+    <span class="summary-icon">⚡</span>
+    <span>
+      <strong>API Live Football Data</strong>
+      <small>Temporada {{ season_number }} · datos de planteles activos</small>
+    </span>
+    <form action="{{ url_for('api_sync') }}" method="post" class="sync-form-inline">
+      <button type="submit" class="button button-small sync-btn" title="Actualizar datos desde la API Live Football Data">↻ ACTUALIZAR API</button>
+    </form>
+  </div>
+</section>
+<div class="market-layout">
+  <section class="panel">
+    <div class="panel-heading">
+      <div><p class="eyebrow">OPORTUNIDADES</p><h2>Jugadores disponibles</h2></div>
+      <span class="round-pill">{{ career.division }}</span>
+    </div>
+    <form method="get" class="market-filter">
+      <input type="hidden" name="formation" value="{{ selected_formation }}">
+      <label for="player-name-filter">
+        Nombre del jugador
+        <input id="player-name-filter" type="search" name="name" value="{{ player_name }}" placeholder="Ej.: Juan Pérez">
+      </label>
+      <label for="team-filter">
+        Equipo
+        <select id="team-filter" name="team">
+          <option value="">Todos los equipos</option>
+          {% for club in clubs %}
+          <option value="{{ club.id }}" {% if selected_team == club.id|string %}selected{% endif %}>{{ club.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label for="position-filter">
+        Posición
+        <select id="position-filter" name="position">
+          <option value="">Todas las posiciones</option>
+        {% for position in positions %}
+        <option value="{{ position }}" {% if selected_position == position %}selected{% endif %}>{{ position }}</option>
+        {% endfor %}
+        </select>
+      </label>
+      <label for="overall-filter">
+        OVR máximo
+        <input id="overall-filter" type="number" name="overall_max"
+               value="{{ overall_max if overall_max is not none else '' }}"
+               min="0" max="99" step="1" placeholder="Cualquiera">
+      </label>
+      <button class="button" type="submit">BUSCAR JUGADORES</button>
+      <a class="market-filter-clear" href="{{ url_for('market') }}">Limpiar filtros</a>
+    </form>
+    {% if career.division == 'Primera Nacional' %}
+    <details class="loan-market">
+      <summary>BUSCAR PRÉSTAMOS DESDE PRIMERA DIVISIÓN · {{ loan_players|length }} DISPONIBLES</summary>
+      <p class="muted">Costo por una temporada: 10% del valor del jugador, mínimo $50.000. El importe se muestra antes de pedir el préstamo.</p>
+      <div class="loan-player-list">
+        {% for player in loan_players %}
+        <article class="loan-player-row">
+          {% if player.club_logo %}
+          <img src="{{ player.club_logo }}" alt="" class="fixture-crest-mini" loading="lazy" onerror="this.style.display='none';">
+          {% else %}
+          <span class="loan-player-initial">{{ player.name[:1]|upper }}</span>
+          {% endif %}
+          <span class="loan-player-info">
+            <strong>{{ player.name }}</strong>
+            <small>{{ player.position }} · {{ player.overall }} OVR · {{ player.club_name }}</small>
+          </span>
+          <strong class="loan-player-fee">{{ player.loan_fee|money }}</strong>
+          <form method="post">
+            <input type="hidden" name="action" value="request_loan">
+            <input type="hidden" name="player_id" value="{{ player.id }}">
+            <button class="button button-small" type="submit"
+                    {% if career.budget < player.loan_fee or squad|length >= max_squad_size %}disabled title="{% if career.budget < player.loan_fee %}Presupuesto insuficiente{% else %}Plantel completo{% endif %}"{% endif %}>
+              PEDIR
+            </button>
+          </form>
+        </article>
+        {% else %}
+        <p class="muted">No hay jugadores de Primera disponibles para préstamo.</p>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+    {% if players %}
+    <p class="market-result-count">Mostrando {{ (current_page - 1) * 12 + 1 }}–{{ (current_page - 1) * 12 + players|length }} de {{ total_players }} jugadores</p>
+    <div class="player-table-wrap">
+      <table class="player-table">
+        <thead>
+          <tr>
+            <th>JUGADOR</th>
+            <th>POS.</th>
+            <th>EDAD</th>
+            <th>OVR</th>
+            <th>CLUB & ESCUDO</th>
+            <th>VALOR</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for player in players %}
+          <tr>
+            <td>
+              <strong>{{ player.name }}</strong>
+              <small class="player-nationality">{{ player.nationality }}</small>
+            </td>
+            <td><span class="position-tag">{{ player.position }}</span></td>
+            <td>{{ player.age or '—' }}</td>
+            <td><span class="ovr-tag">{{ player.overall }}</span></td>
+            <td class="club-cell">
+              <div class="club-badge-wrap">
+                {% if player.club_logo %}
+                  <img src="{{ player.club_logo }}" alt="Escudo {{ player.club_name }}" class="club-crest-icon" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                  <span class="club-crest-fallback" style="display:none;">🛡️</span>
+                {% else %}
+                  <span class="club-crest-fallback">🛡️</span>
+                {% endif %}
+                <span class="club-name-label">{{ player.club_name }}</span>
+              </div>
+            </td>
+            <td class="player-value">{{ player.transfer_fee|money }}</td>
+            <td>
+              <form method="post">
+                <input type="hidden" name="player_id" value="{{ player.id }}">
+                <input type="hidden" name="formation" value="{{ selected_formation }}">
+                <input type="hidden" name="name" value="{{ player_name }}">
+                <input type="hidden" name="team" value="{{ selected_team }}">
+                <input type="hidden" name="position" value="{{ selected_position }}">
+                <input type="hidden" name="overall_max" value="{{ overall_max if overall_max is not none else '' }}">
+                <input type="hidden" name="page" value="{{ current_page }}">
+                <button class="button button-small" type="submit" {% if career.budget < player.transfer_fee %}disabled title="Presupuesto insuficiente"{% endif %}>INCORPORAR</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if total_pages > 1 %}
+    <nav class="market-pagination" aria-label="Páginas de jugadores">
+      {% if current_page > 1 %}
+      <a class="button button-small" href="{{ url_for('market', name=player_name, team=selected_team, position=selected_position, overall_max=overall_max, page=current_page - 1, formation=selected_formation) }}">← ANTERIOR</a>
+      {% else %}
+      <span class="button button-small pagination-disabled" aria-disabled="true">← ANTERIOR</span>
+      {% endif %}
+      <span class="market-page-indicator">PÁGINA {{ current_page }} DE {{ total_pages }}</span>
+      {% if current_page < total_pages %}
+      <a class="button button-small" href="{{ url_for('market', name=player_name, team=selected_team, position=selected_position, overall_max=overall_max, page=current_page + 1, formation=selected_formation) }}">SIGUIENTE →</a>
+      {% else %}
+      <span class="button button-small pagination-disabled" aria-disabled="true">SIGUIENTE →</span>
+      {% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+      <div class="empty-state">
+        <span>♙</span>
+        {% if selected_position or selected_team or player_name %}
+        <h3>No hay jugadores que coincidan con la búsqueda</h3>
+        <p>Probá cambiar los filtros para ver más opciones.</p>
+        <a class="button button-small" href="{{ url_for('market') }}">LIMPIAR FILTROS</a>
+        {% else %}
+        <h3>No hay jugadores cargados todavía</h3>
+        <p>Cuando estén disponibles los planteles de {{ career.division }}, vas a poder buscar refuerzos acá.</p>
+        <form action="{{ url_for('api_sync') }}" method="post" style="margin-top: 15px;">
+          <button type="submit" class="button button-small">Cargar desde API Live Football Data</button>
+        </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+  <aside class="panel squad-panel">
+    <div class="panel-heading">
+      <div><p class="eyebrow">TU EQUIPO</p><h2>Formación y plantel</h2></div>
+      <span class="round-pill">{{ squad|length }} / {{ max_squad_size }} FICHAJES</span>
+    </div>
+    {% if squad %}
+      <nav class="formation-selector" aria-label="Elegir formación">
+        {% for formation in formations %}
+        <a class="formation-option {% if selected_formation == formation %}active{% endif %}"
+           href="{{ url_for('market', name=player_name, team=selected_team, position=selected_position, overall_max=overall_max, page=current_page, formation=formation) }}"
+           {% if selected_formation == formation %}aria-current="true"{% endif %}>{{ formation }}</a>
+        {% endfor %}
+      </nav>
+      <p class="formation-caption">Tocá un jugador y después a otro para intercambiarlos entre la cancha y el banco.</p>
+      <form action="{{ url_for('save_squad_lineup') }}" method="post" class="lineup-form">
+        <input type="hidden" name="formation" value="{{ selected_formation }}">
+        <input type="hidden" name="name" value="{{ player_name }}">
+        <input type="hidden" name="team" value="{{ selected_team }}">
+        <input type="hidden" name="position" value="{{ selected_position }}">
+        <input type="hidden" name="overall_max" value="{{ overall_max if overall_max is not none else '' }}">
+        <input type="hidden" name="page" value="{{ current_page }}">
+      <div class="football-pitch" aria-label="Formación {{ selected_formation }}">
+        <div class="pitch-center-circle"></div>
+        <div class="pitch-halfway-line"></div>
+        {% for line in formation_lines %}
+        <div class="pitch-line pitch-line-{{ line.position|lower }}">
+          {% for player in line.players %}
+          <div class="pitch-player">
+            <button type="button" class="lineup-player" data-player-id="{{ player.id }}"
+                    data-player-name="{{ player.name }}" data-position="{{ player.position }}"
+                    data-overall="{{ player.overall }}" data-crest="{{ player.origin_club_logo or '' }}"
+                    aria-pressed="false" aria-label="{{ player.name }}, titular {{ line.position }}">
+              {% if player.origin_club_logo %}
+              <img src="{{ player.origin_club_logo }}" alt="" class="pitch-player-crest" loading="lazy" onerror="this.style.display='none';">
+              {% else %}
+              <span class="pitch-player-initial">{{ player.name[:1]|upper }}</span>
+              {% endif %}
+              <strong class="lineup-player-name">{{ player.name }}</strong>
+              <small class="lineup-player-details">{{ player.position }} · {{ player.overall }}</small>
+            </button>
+            <input type="hidden" name="starter_id" value="{{ player.id }}" class="lineup-player-value">
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if squad|length >= 11 %}
+      <button class="button button-primary full-width save-lineup-button" type="submit">GUARDAR ALINEACIÓN</button>
+      {% else %}
+      <button class="button button-primary full-width save-lineup-button" type="button" disabled>NECESITÁS 11 JUGADORES PARA GUARDAR</button>
+      {% endif %}
+      </form>
+      <section class="substitutes">
+        <div class="substitutes-heading">
+          <h3>Banco de suplentes</h3>
+          <span>{{ substitute_players|length }} jugadores</span>
+        </div>
+        <p class="lineup-selection-status" aria-live="polite">Elegí dos jugadores para hacer un cambio.</p>
+        {% if substitute_players %}
+        <div class="substitute-list">
+          {% for player in substitute_players %}
+          <div class="substitute-player">
+            <button type="button" class="lineup-player" data-player-id="{{ player.id }}"
+                    data-player-name="{{ player.name }}" data-position="{{ player.position }}"
+                    data-overall="{{ player.overall }}" data-crest="{{ player.origin_club_logo or '' }}"
+                    aria-pressed="false" aria-label="{{ player.name }}, suplente">
+            {% if player.origin_club_logo %}
+            <img src="{{ player.origin_club_logo }}" alt="" class="squad-crest-icon" loading="lazy" onerror="this.style.display='none';">
+            {% else %}
+            <span class="substitute-position">{{ player.name[:1]|upper }}</span>
+            {% endif %}
+            <strong class="lineup-player-name">{{ player.name }}</strong>
+            <small class="lineup-player-details">{{ player.position }} · {{ player.overall }} OVR</small>
+            </button>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="substitutes-empty">Todavía no hay suplentes; incorporá más jugadores para completar el banco.</p>
+        {% endif %}
+      </section>
+    {% else %}
+      <div class="empty-state compact">
+        <span>＋</span>
+        <h3>Plantel por armar</h3>
+        <p>Cuando incorpores jugadores, vas a poder elegir la formación y ver titulares y suplentes en la cancha.</p>
+      </div>
+    {% endif %}
+    {% if squad %}
+    <section class="squad-sales">
+      <div class="substitutes-heading">
+        <h3>Vender jugadores</h3>
+        <span>+$500.000 por jugador</span>
+      </div>
+      <p class="muted">Vendé jugadores para liberar un lugar y sumar presupuesto.</p>
+      <div class="squad-sale-list">
+        {% for player in squad %}
+        <div class="squad-sale-row">
+          <span>
+            <strong>{{ player.name }}{% if player.loan_season_number %} · PRÉSTAMO{% endif %}</strong>
+            <small>{{ player.position }} · {{ player.overall }} OVR{% if player.loan_season_number %} · vuelve al finalizar la temporada{% endif %}</small>
+          </span>
+          <form method="post">
+            <input type="hidden" name="action" value="sell_player">
+            <input type="hidden" name="player_id" value="{{ player.id }}">
+            <input type="hidden" name="formation" value="{{ selected_formation }}">
+            <button class="button button-small sell-player-button" type="submit"
+                    {% if player.loan_season_number %}disabled title="Los jugadores a préstamo no se pueden vender"{% endif %}>
+              {% if player.loan_season_number %}A PRÉSTAMO{% else %}VENDER · +$500.000{% endif %}
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+    <div class="market-start-season">
+      <p class="muted">Completá el plantel al azar para llegar a esta base: 1 arquero, 4 defensores, 4 mediocampistas y 4 delanteros. Se respeta el presupuesto y podés cambiar titulares y suplentes antes de empezar.</p>
+      <form method="post">
+        <input type="hidden" name="action" value="auto_build_and_start">
+        <input type="hidden" name="formation" value="{{ selected_formation }}">
+        <button class="button button-primary full-width" type="submit">ARMAR EQUIPO AL AZAR</button>
+      </form>
+      <p class="muted">Cuando termines de ajustar la alineación, comenzá el torneo. También podés jugar con tu plantel actual sin comprar más.</p>
+      <form method="post">
+        <input type="hidden" name="action" value="start_tournament">
+        <input type="hidden" name="formation" value="{{ selected_formation }}">
+        <button class="button button-primary full-width" type="submit">COMENZAR TEMPORADA →</button>
+      </form>
+    </div>
+  </aside>
+</div>
+<script src="{{ url_for('static', filename='lineup.js', v='20261028.2') }}" defer></script>
+{% endblock %}

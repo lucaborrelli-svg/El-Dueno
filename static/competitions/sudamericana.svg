@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img">
+  <circle cx="60" cy="60" r="55" fill="#30261a" stroke="#d39a55" stroke-width="3"/>
+  <path d="M48 24h24l-3 14-7 8 3 26 12 9v7H43v-7l12-9 3-26-7-8-3-14Z" fill="#e0a85e"/>
+  <path d="M43 25h11l-2 9H41l-7-9h9Zm34 0H66l2 9h9l8-9h-8Z" fill="#f2d2a0"/>
+  <path d="M49 94h22l5 7H44l5-7Zm-6 12h34v4H43z" fill="#d39a55"/>
+  <text x="60" y="17" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="7" font-weight="700" letter-spacing="1">CONMEBOL</text>
+  <text x="60" y="117" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="7" font-weight="700" letter-spacing=".5">SUDAMERICANA</text>
+</svg>

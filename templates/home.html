@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Creá tu club{% endblock %}
+{% block content %}
+<section class="hero-grid">
+  <div class="hero-copy">
+    <p class="eyebrow"><span class="eyebrow-line"></span> UNA NUEVA HISTORIA EMPIEZA HOY</p>
+    <h1>El próximo<br>grande <em>lo hacés vos.</em></h1>
+    <p class="hero-lede">Fundá tu club, ganate a la gente y armá un equipo capaz de llegar a lo más alto del fútbol argentino.</p>
+    <div class="hero-facts">
+      <div><strong>20</strong><span>días para construir<br>tu proyecto</span></div>
+      <div><strong>2</strong><span>categorías para<br>competir</span></div>
+      <div><strong>∞</strong><span>decisiones que<br>cambian todo</span></div>
+    </div>
+  </div>
+  <div class="form-card">
+    <div class="card-kicker"><span>01</span> FUNDÁ TU CLUB</div>
+    <h2>Tu primer paso</h2>
+    <p class="muted">Definí las bases de una institución que va a dejar su marca.</p>
+    <form method="post" class="club-form">
+      <label>Tu nombre
+        <input name="manager_name" maxlength="50" placeholder="Ej. Diego" required>
+      </label>
+      <label>Nombre del club
+        <input name="club_name" maxlength="40" placeholder="Ej. Deportivo del Sur" required>
+      </label>
+      <label>Ciudad o provincia
+        <input name="province" maxlength="40" placeholder="Ej. Córdoba">
+      </label>
+      <label>Categoría inicial
+        <select name="division" required>
+          <option value="Primera Nacional">Primera Nacional — El camino del ascenso</option>
+          <option value="Primera División">Primera División — La máxima categoría</option>
+        </select>
+      </label>
+      <div class="identity-builders">
+      <fieldset class="crest-builder">
+        <legend>Tu escudo y sus colores</legend>
+        <div class="crest-builder-preview">
+          <svg id="crest-preview" viewBox="0 0 100 120" role="img" aria-label="Vista previa del escudo">
+            <defs>
+              <clipPath id="crest-preview-clip"><path d="M8 6h84v57c0 23-19 39-42 53C27 102 8 86 8 63z"/></clipPath>
+            </defs>
+            <g id="crest-preview-shape" fill="{{ default_crest_primary }}" stroke="{{ default_crest_secondary }}" stroke-width="5">
+              <path d="M8 6h84v57c0 23-19 39-42 53C27 102 8 86 8 63z"/>
+            </g>
+            <g id="crest-preview-symbol" fill="{{ default_crest_secondary }}">
+              <path clip-path="url(#crest-preview-clip)" d="M50 28l5.8 11.8 13 1.9-9.4 9.2 2.2 13-11.6-6.1-11.6 6.1 2.2-13-9.4-9.2 13-1.9z"/>
+            </g>
+            <path id="crest-preview-band" d="M23 78h54" stroke="{{ default_crest_secondary }}"
+                  stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <span>Vista previa</span>
+        </div>
+        <div class="crest-builder-fields">
+          <label>Color principal
+            <input type="color" name="crest_primary" value="{{ default_crest_primary }}">
+          </label>
+          <label>Color secundario
+            <input type="color" name="crest_secondary" value="{{ default_crest_secondary }}">
+          </label>
+          <label class="crest-symbol-field">Diseño del escudo
+            <select name="crest_symbol" id="crest-symbol">
+              {% for symbol, label in crest_symbols.items() %}
+              <option value="{{ symbol }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="crest-shape-field">Forma del escudo
+            <select name="crest_shape" id="crest-shape">
+              {% for shape, label in crest_shapes.items() %}
+              <option value="{{ shape }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      </fieldset>
+      <fieldset class="shirt-builder">
+        <legend>Diseñá tu camiseta</legend>
+        <div class="shirt-builder-preview">
+          <svg id="shirt-preview" viewBox="0 0 100 100" role="img" aria-label="Vista previa de camiseta">
+            <defs>
+              <clipPath id="shirt-preview-clip">
+                <path d="M34 10 42 5h16l8 5 18 7 11 19-13 9-9-10v51Q50 96 27 86V35l-9 10L5 36l11-19z"/>
+              </clipPath>
+            </defs>
+            <path id="shirt-preview-base" fill="{{ default_shirt_primary }}"
+                  d="M34 10 42 5h16l8 5 18 7 11 19-13 9-9-10v51Q50 96 27 86V35l-9 10L5 36l11-19z"/>
+            <g id="shirt-preview-pattern" clip-path="url(#shirt-preview-clip)"></g>
+            <path id="shirt-preview-outline" fill="none" stroke="{{ default_shirt_secondary }}" stroke-width="4" stroke-linejoin="round"
+                  d="M34 10 42 5h16l8 5 18 7 11 19-13 9-9-10v51Q50 96 27 86V35l-9 10L5 36l11-19z"/>
+            <path id="shirt-preview-collar" fill="none" stroke="{{ default_shirt_secondary }}" stroke-width="3" d="M42 6q8 17 16 0"/>
+          </svg>
+          <span>Vista previa</span>
+        </div>
+        <div class="shirt-builder-fields">
+          <label>Color principal
+            <input type="color" name="shirt_primary" value="{{ default_shirt_primary }}">
+          </label>
+          <label>Color secundario
+            <input type="color" name="shirt_secondary" value="{{ default_shirt_secondary }}">
+          </label>
+          <label class="shirt-pattern-field">Diseño
+            <select name="shirt_pattern" id="shirt-pattern">
+              {% for pattern, label in shirt_patterns.items() %}
+              <option value="{{ pattern }}" {% if default_shirt_pattern == pattern %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      </fieldset>
+      </div>
+      <button class="button button-primary full-width" type="submit">CREAR MI CLUB <span>→</span></button>
+      <p class="form-note">Empezás con $0 de presupuesto. Tu primera decisión puede cambiar todo.</p>
+    </form>
+  </div>
+</section>
+<section class="feature-strip">
+  <div class="feature"><span class="feature-icon">01</span><div><strong>CONSTRUÍ TU IDENTIDAD</strong><p>Elegí el camino de tu club y hacelo crecer desde cero.</p></div></div>
+  <div class="feature"><span class="feature-icon">02</span><div><strong>GANATE A LA GENTE</strong><p>Cada decisión mueve el presupuesto, los hinchas y tu popularidad.</p></div></div>
+  <div class="feature"><span class="feature-icon">03</span><div><strong>ARMÁ TU PLANTEL</strong><p>Cuando termine la pretemporada, llega el mercado de pases.</p></div></div>
+</section>
+<script>
+  const crestPrimary = document.querySelector('[name="crest_primary"]');
+  const crestSecondary = document.querySelector('[name="crest_secondary"]');
+  const crestSymbol = document.querySelector('#crest-symbol');
+  const crestShape = document.querySelector('#crest-shape');
+  const clubName = document.querySelector('[name="club_name"]');
+  const crestPreviewShape = document.querySelector('#crest-preview-shape');
+  const crestPreviewClip = document.querySelector('#crest-preview-clip');
+  const crestPreviewSymbol = document.querySelector('#crest-preview-symbol');
+  const crestPreviewBand = document.querySelector('#crest-preview-band');
+  const shirtPrimary = document.querySelector('[name="shirt_primary"]');
+  const shirtSecondary = document.querySelector('[name="shirt_secondary"]');
+  const shirtPattern = document.querySelector('#shirt-pattern');
+  const shirtPreviewBase = document.querySelector('#shirt-preview-base');
+  const shirtPreviewPattern = document.querySelector('#shirt-preview-pattern');
+  const shirtPreviewOutline = document.querySelector('#shirt-preview-outline');
+  const shirtPreviewCollar = document.querySelector('#shirt-preview-collar');
+  const crestPreviewSymbols = {
+    star: '<path d="M50 28l5.8 11.8 13 1.9-9.4 9.2 2.2 13-11.6-6.1-11.6 6.1 2.2-13-9.4-9.2 13-1.9z"/>',
+    stripes: '<path clip-path="url(#crest-preview-clip)" d="M23 8h12v104H23zm21 0h12v104H44zm21 0h12v104H65z"/>',
+    ball: '<circle cx="50" cy="48" r="20" fill="none" stroke="currentColor" stroke-width="4"/><path d="m50 35 9 7-3 11H44l-3-11zm-9 7-8-3m23 3 8-3m-17 14-4 9m11-9 4 9" fill="none" stroke="currentColor" stroke-width="3"/>',
+    initial: '<text x="50" y="61" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" font-weight="700">E</text>',
+    crown: '<path d="m25 59 5-24 15 13 5-20 5 20 15-13 5 24zM28 66h44v6H28z"/>',
+    diamond: '<path d="m50 25 25 25-25 25-25-25z"/>',
+    cross: '<path d="M42 28h16v14h14v16H58v14H42V58H28V42h14z"/>',
+    chevron: '<path d="m25 34 25 20 25-20v17L50 71 25 51z"/>',
+    sun: '<g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="50" r="15"/><path d="M50 24v-8m0 68v-8M24 50h-8m68 0h-8M32 32l-6-6m48 48-6-6m0-36 6-6m-48 48 6-6"/></g>',
+    mountain: '<path d="m20 70 19-32 11 17 10-14 20 29z"/><path d="m34 47 5-9 7 11-5-3-3 4zm20 2 6-8 7 11-7-4-3 4z" fill="var(--crest-primary)"/>',
+    lightning: '<path d="M55 23 32 54h15l-4 24 25-34H52z"/>',
+    anchor: '<g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="50" cy="30" r="7"/><path d="M50 37v38M35 48h30M24 60c4 13 14 20 26 20s22-7 26-20M24 60l-1 13 13-3m40-10 1 13-13-3"/></g>'
+  };
+  const crestPreviewShapes = {
+    shield: '<path d="M8 6h84v57c0 23-19 39-42 53C27 102 8 86 8 63z"/>',
+    round: '<circle cx="50" cy="60" r="44"/>',
+    rounded: '<path d="M17 7h66a9 9 0 0 1 9 9v49c0 25-18 40-42 51C26 103 8 90 8 65V16a9 9 0 0 1 9-9z"/>',
+    square: '<rect x="8" y="6" width="84" height="108" rx="8"/>'
+  };
+  const shirtPreviewPatterns = {
+    solid: '',
+    stripes: '<path d="M32 0h10v100H32zm22 0h10v100H54zm22 0h10v100H76z"/>',
+    hoops: '<path d="M0 27h100v10H0zm0 25h100v10H0zm0 25h100v10H0z"/>',
+    diagonal: '<path d="m8 70 53-62m1 95 39-45" fill="none" stroke="currentColor" stroke-width="9"/>',
+    halves: '<path d="M50 0h55v100H50z"/>'
+  };
+  const updateCrestPreview = () => {
+    crestPreviewShape.innerHTML = crestPreviewShapes[crestShape.value];
+    crestPreviewClip.innerHTML = crestPreviewShapes[crestShape.value];
+    crestPreviewShape.setAttribute('fill', crestPrimary.value);
+    crestPreviewShape.setAttribute('stroke', crestSecondary.value);
+    crestPreviewSymbol.setAttribute('fill', crestSecondary.value);
+    crestPreviewSymbol.setAttribute('color', crestSecondary.value);
+    crestPreviewSymbol.style.setProperty('--crest-primary', crestPrimary.value);
+    crestPreviewSymbol.innerHTML = crestPreviewSymbols[crestSymbol.value].replace(
+      '>E</text>',
+      `>${clubName.value.trim().slice(0, 1).toUpperCase() || 'E'}</text>`
+    );
+    crestPreviewBand.setAttribute('stroke', crestSecondary.value);
+  };
+  const updateShirtPreview = () => {
+    shirtPreviewBase.setAttribute('fill', shirtPrimary.value);
+    shirtPreviewPattern.setAttribute('fill', shirtSecondary.value);
+    shirtPreviewPattern.setAttribute('color', shirtSecondary.value);
+    shirtPreviewPattern.innerHTML = shirtPreviewPatterns[shirtPattern.value];
+    shirtPreviewOutline.setAttribute('stroke', shirtSecondary.value);
+    shirtPreviewCollar.setAttribute('stroke', shirtSecondary.value);
+  };
+  crestPrimary.addEventListener('input', updateCrestPreview);
+  crestSecondary.addEventListener('input', updateCrestPreview);
+  crestSymbol.addEventListener('change', updateCrestPreview);
+  crestShape.addEventListener('change', updateCrestPreview);
+  clubName.addEventListener('input', updateCrestPreview);
+  shirtPrimary.addEventListener('input', updateShirtPreview);
+  shirtSecondary.addEventListener('input', updateShirtPreview);
+  shirtPattern.addEventListener('change', updateShirtPreview);
+  updateShirtPreview();
+</script>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% macro team_line(team_name, club_id, logo, revealed, winner) %}
+<div class="copa-bracket-team{% if revealed and winner == team_name %} copa-bracket-winner{% endif %}">
+  {% if revealed %}
+    {% if club_id is none %}
+    <img src="{{ url_for('club_crest') }}" alt="" class="copa-bracket-crest">
+    {% elif logo %}
+    <img src="{{ logo }}" alt="" class="copa-bracket-crest" loading="lazy" onerror="this.style.display='none';">
+    {% endif %}
+    <strong>{{ team_name }}</strong>
+  {% else %}
+    <strong class="copa-hidden-team">Por sortear</strong>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro match_card(match, current_round, career_name) %}
+<article class="copa-bracket-match{% if match.winner_team %} copa-bracket-played{% endif %}">
+  <small>CRUCE {{ "%02d"|format(match.match_number) }}</small>
+  {{ team_line(match.home_team, match.home_club_id, match.home_logo, match.revealed, match.winner_team) }}
+  <div class="copa-bracket-score">
+    {% if not match.revealed %}
+    <span>VS</span>
+    {% elif match.is_bye %}
+    <span class="copa-bye-label">PASA LIBRE</span>
+    {% elif match.home_score is not none %}
+    <strong>{{ match.home_score }}{% if match.home_penalties is not none %} ({{ match.home_penalties }}){% endif %}</strong>
+    <span>–</span>
+    <strong>{{ match.away_score }}{% if match.away_penalties is not none %} ({{ match.away_penalties }}){% endif %}</strong>
+    {% else %}
+    <span>VS</span>
+    {% endif %}
+  </div>
+  {% if not match.is_bye or not match.revealed %}
+  {{ team_line(match.away_team, match.away_club_id, match.away_logo, match.revealed, match.winner_team) }}
+  {% endif %}
+  {% if match.round_number|default(current_round) == current_round
+        and match.revealed and not match.winner_team and not match.is_bye
+        and not match.is_placeholder|default(false) %}
+  <form action="{{ url_for('play_copa_argentina_match_route', match_id=match.id) }}"
+        method="post" class="copa-match-action">
+    <button class="button button-small {% if match.home_club_id is none or match.away_club_id is none %}button-primary{% else %}button-secondary{% endif %}"
+            type="submit"
+            title="{% if match.home_club_id is none or match.away_club_id is none %}Jugar partido de tu club{% else %}Simular solo este partido{% endif %}">
+      {% if match.home_club_id is none or match.away_club_id is none %}
+      JUGAR
+      {% else %}
+      SIMULAR
+      {% endif %}
+    </button>
+  </form>
+  {% endif %}
+</article>
+{% endmacro %}
+
+{% if bracket_rounds %}
+<section class="copa-bracket-section">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">LLAVE ELIMINATORIA</p>
+      <h3>Camino a la final</h3>
+    </div>
+    <span class="round-pill">PARTIDO ÚNICO</span>
+  </div>
+  <div class="copa-bracket-scroll">
+    <div class="copa-bracket-layout"
+         style="--copa-round-count: {{ bracket_round_count }}">
+      <div class="copa-bracket-half copa-bracket-left">
+        {% for round in bracket_rounds if round.number < bracket_rounds|length %}
+        <section class="copa-bracket-round">
+          <h4>{{ round.label }}</h4>
+          <div class="copa-bracket-match-list">
+            {% for match in round.left_matches %}
+            {{ match_card(match, progress.current_round, career_name) }}
+            {% endfor %}
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+
+      {% set final = bracket_rounds[-1] %}
+      <section class="copa-bracket-final">
+        <p class="eyebrow">FINAL</p>
+        {% if final.final_match %}
+        {{ match_card(final.final_match, progress.current_round, career_name) }}
+        {% else %}
+        <div class="copa-bracket-final-placeholder">
+          <span>🏆</span>
+          <strong>FINAL</strong>
+          <small>Por sortear</small>
+        </div>
+        {% endif %}
+      </section>
+
+      <div class="copa-bracket-half copa-bracket-right">
+        {% for round in bracket_rounds|reverse if round.number < bracket_rounds|length %}
+        <section class="copa-bracket-round">
+          <h4>{{ round.label }}</h4>
+          <div class="copa-bracket-match-list">
+            {% for match in round.right_matches|reverse %}
+            {{ match_card(match, progress.current_round, career_name) }}
+            {% endfor %}
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}

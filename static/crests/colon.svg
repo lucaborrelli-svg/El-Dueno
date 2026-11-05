@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" width="100%" height="100%">
+  <defs>
+    <clipPath id="crest-clip-colon">
+      <path d="M 15 15 Q 60 5 105 15 L 105 75 Q 105 125 60 135 Q 15 125 15 75 Z" />
+    </clipPath>
+    <linearGradient id="crest-grad-colon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B71C1C" />
+      <stop offset="100%" stop-color="#B71C1C" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <path d="M 15 15 Q 60 5 105 15 L 105 75 Q 105 125 60 135 Q 15 125 15 75 Z" fill="url(#crest-grad-colon)" stroke="#FFFFFF" stroke-width="4" />
+  <!-- Pattern inside shield -->
+  <g clip-path="url(#crest-clip-colon)">
+    
+        <rect x="0" y="0" width="60" height="140" fill="#B71C1C" />
+        <rect x="60" y="0" width="60" height="140" fill="#111111" />
+        
+  </g>
+  <!-- Inner Border -->
+  <path d="M 15 15 Q 60 5 105 15 L 105 75 Q 105 125 60 135 Q 15 125 15 75 Z" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.85" />
+  <!-- Acronym / Monogram -->
+  <g transform="translate(60, 75)">
+    <!-- subtle shadow -->
+    <text x="0" y="2" text-anchor="middle" font-family="'Space Grotesk', 'Arial Black', sans-serif" font-size="20" font-weight="900" fill="rgba(0,0,0,0.55)" letter-spacing="1">CAC</text>
+    <text x="0" y="0" text-anchor="middle" font-family="'Space Grotesk', 'Arial Black', sans-serif" font-size="20" font-weight="900" fill="#FFFFFF" letter-spacing="1">CAC</text>
+  </g>
+</svg>

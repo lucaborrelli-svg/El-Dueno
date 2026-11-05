@@ -1,0 +1,1001 @@
+{% extends "base.html" %}
+{% from "_team_shirt.html" import team_shirt %}
+{% block title %}Calendario 2026{% endblock %}
+{% block content %}
+<div class="dashboard-heading">
+  <div>
+    <p class="eyebrow"><span class="eyebrow-line"></span> TEMPORADA {{ season_number or 1 }} <span class="eyebrow-separator">/</span> FIXTURE OFICIAL</p>
+    <h1>El calendario <em>de la liga.</em></h1>
+    {% if career.phase == 'season' %}
+      <p class="muted">¡Plantel completo! Ya podés jugar las fechas de {{ career.division }}.</p>
+    {% else %}
+      <p class="muted">Fixture completo de {{ career.division }} para el año 2026 sincronizado desde API Live Football Data.</p>
+    {% endif %}
+  </div>
+  <div class="header-actions-wrap">
+    {% if career.phase == 'market' %}
+      <a class="button button-primary" href="{{ url_for('market') }}">IR AL MERCADO →</a>
+    {% endif %}
+  </div>
+</div>
+{% if career.phase == 'season' %}
+{% if not playoff_results_hidden %}
+<section class="panel tournament-panel">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">MODO CARRERA · {{ career.club_name }}</p>
+      <h2>Jugar el torneo</h2>
+    </div>
+    {% if round_complete and active_round == tournament_rounds %}
+    <span class="round-pill">TORNEO FINALIZADO</span>
+    {% else %}
+    <span class="round-pill">FECHA {{ "%02d"|format(active_round) }} / {{ tournament_rounds }}</span>
+    {% endif %}
+  </div>
+  <p class="muted tournament-intro">
+    Cada fecha simula todos los partidos de la liga y actualiza la tabla de posiciones.
+    {% if copa_is_pending and copa_scheduled_matchday %}
+    {% if copa_is_matchday and not playoff_results_hidden %}
+    Copa Argentina programada para esta fecha, ronda {{ copa_progress.current_round }}.
+    {% else %}
+    Próxima Copa Argentina: fecha {{ "%02d"|format(copa_scheduled_matchday) }}, ronda {{ copa_progress.current_round }}.
+    {% endif %}
+    {% endif %}
+  </p>
+  {% if pending_season_decision %}
+  <section class="season-decision-panel">
+    <div class="season-decision-heading">
+      <span class="decision-icon">{{ pending_decision_event.icon }}</span>
+      <div>
+        <p class="eyebrow">DECISIÓN DE TEMPORADA · FECHA {{ pending_season_decision.after_round }}</p>
+        <h3>{{ pending_decision_event.title }}</h3>
+        <p class="muted">{{ pending_decision_event.context }}</p>
+      </div>
+    </div>
+    <p class="season-decision-note">Elegí una opción para continuar. Estos eventos aparecen cada dos fechas.</p>
+    <form action="{{ url_for('make_season_decision') }}" method="post" class="season-decision-options">
+      {% for choice_key, option in pending_decision_event.options.items() %}
+      <label class="season-decision-option">
+        <input type="radio" name="choice" value="{{ choice_key }}" required>
+        <span><strong>{{ option.title }}</strong><small>{{ option.description }}</small></span>
+      </label>
+      {% endfor %}
+      <button class="button button-primary" type="submit">CONFIRMAR DECISIÓN →</button>
+    </form>
+  </section>
+  {% elif active_round < tournament_rounds or not round_complete %}
+  <div class="simulate-season-action">
+    <form action="{{ url_for('simulate_full_season') }}" method="post">
+      <button class="button button-secondary" type="submit">
+        {% if auto_simulation %}CONTINUAR SIMULACIÓN DEL AÑO{% else %}SIMULAR TODO EL AÑO{% endif %} →
+      </button>
+    </form>
+    <small>La simulación se detiene cada dos fechas para que elijas una decisión.</small>
+  </div>
+  {% endif %}
+  {% if match_dashboard %}
+  {% if match_dashboard.bye %}
+  <section class="match-dashboard match-dashboard-bye">
+    <img src="{{ url_for('club_crest') }}" alt="Escudo {{ match_dashboard.team_name }}" class="match-team-crest">
+    <div>
+      <p class="eyebrow">FECHA {{ "%02d"|format(match_dashboard.round_number) }}</p>
+      <h3>{{ match_dashboard.team_name }} queda libre esta fecha</h3>
+      <p class="muted">No hay rival asignado. Se simulan los demás partidos de la jornada.</p>
+    </div>
+  </section>
+  {% else %}
+  <section class="match-dashboard {% if match_dashboard.played %}match-dashboard-played{% endif %}">
+    <div class="match-dashboard-scoreboard">
+      <div class="match-dashboard-team">
+        {% if match_dashboard.home.is_career %}
+        <img src="{{ url_for('club_crest') }}" alt="Escudo {{ match_dashboard.home.name }}" class="match-team-crest">
+        {% elif match_dashboard.home.logo %}
+        <img src="{{ match_dashboard.home.logo }}" alt="" class="match-team-crest" onerror="this.style.display='none';">
+        {% else %}
+        <span class="match-team-crest match-team-crest-fallback">{{ match_dashboard.home.name[:1]|upper }}</span>
+        {% endif %}
+        {{ team_shirt(match_dashboard.home, 'league-home') }}
+        <strong>{{ match_dashboard.home.name }}</strong>
+      </div>
+      <div class="match-dashboard-score">
+        <p class="eyebrow" {% if live_match_simulation %}id="match-live-clock"{% endif %}>
+          {% if live_match_simulation %}EN VIVO · 0′{% else %}FECHA {{ "%02d"|format(match_dashboard.round_number) }} · {{ match_dashboard.played_on }}{% endif %}
+        </p>
+        {% if match_dashboard.played %}
+        <strong id="match-live-score"
+                {% if live_match_simulation %}
+                data-home-score="{{ match_dashboard.home_score }}"
+                data-away-score="{{ match_dashboard.away_score }}"
+                data-home-team="{{ match_dashboard.home.name }}"
+                data-away-team="{{ match_dashboard.away.name }}"
+                {% endif %}>
+          {% if live_match_simulation %}0 <span>—</span> 0{% else %}{{ match_dashboard.home_score }} <span>—</span> {{ match_dashboard.away_score }}{% endif %}
+        </strong>
+        <small {% if live_match_simulation %}id="match-live-status"{% endif %}>
+          {% if live_match_simulation %}SIMULACIÓN EN VIVO{% else %}RESULTADO FINAL{% endif %}
+        </small>
+        {% else %}
+        <strong>VS</strong>
+        <small>PRÓXIMO PARTIDO</small>
+        {% endif %}
+      </div>
+      <div class="match-dashboard-team away">
+        {% if match_dashboard.away.is_career %}
+        <img src="{{ url_for('club_crest') }}" alt="Escudo {{ match_dashboard.away.name }}" class="match-team-crest">
+        {% elif match_dashboard.away.logo %}
+        <img src="{{ match_dashboard.away.logo }}" alt="" class="match-team-crest" onerror="this.style.display='none';">
+        {% else %}
+        <span class="match-team-crest match-team-crest-fallback">{{ match_dashboard.away.name[:1]|upper }}</span>
+        {% endif %}
+        {{ team_shirt(match_dashboard.away, 'league-away') }}
+        <strong>{{ match_dashboard.away.name }}</strong>
+      </div>
+    </div>
+    <div class="match-dashboard-lineups">
+      {% for team in [match_dashboard.home, match_dashboard.away] %}
+      <section class="match-lineup">
+        <div class="match-lineup-heading">
+          <div>
+            <p class="eyebrow">{% if team.is_career %}TU EQUIPO{% else %}RIVAL{% endif %}</p>
+            <h3>{{ team.name }}</h3>
+          </div>
+          <span class="round-pill">{{ team.formation }}</span>
+        </div>
+        <div class="match-lineup-rows">
+          {% for line in team.lines %}
+          <div class="match-lineup-row">
+            <span class="match-lineup-position">{{ line.position }}</span>
+            <ul>
+              {% for player in line.players %}
+              <li title="{{ player.name }} · {{ player.position }} · {{ player.overall }} OVR">
+                <strong>{{ player.name }}</strong>
+                <small>{{ player.position }} · {{ player.overall }}</small>
+              </li>
+              {% else %}
+              <li class="match-lineup-empty">Sin jugadores disponibles</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+    {% if match_dashboard.played %}
+    <section class="match-live-panel {% if live_match_simulation %}match-live-running{% endif %}"
+             id="match-live-panel" {% if live_match_simulation %}data-live="true"{% endif %}>
+      <div class="match-live-heading">
+        <div>
+          <p class="eyebrow">RELATO DEL PARTIDO</p>
+          <h3>Incidencias</h3>
+        </div>
+        <span class="match-live-progress-label" id="match-live-progress-label">
+          {% if live_match_simulation %}0′ / 90′{% else %}FINAL{% endif %}
+        </span>
+      </div>
+      <div class="match-live-progress"><span id="match-live-progress"></span></div>
+      <ol class="match-event-list" id="match-event-list">
+        {% for event in match_dashboard.events %}
+        <li class="match-event match-event-{{ event.type }} {% if live_match_simulation %}match-event-pending{% endif %}"
+            data-minute="{{ event.minute }}" data-type="{{ event.type }}" data-side="{{ event.side }}">
+          <span class="match-event-minute">{{ event.minute }}′</span>
+          <span class="match-event-icon" aria-hidden="true">
+            {% if event.type == 'goal' %}⚽{% elif event.type == 'yellow' %}🟨{% else %}🟥{% endif %}
+          </span>
+          <span class="match-event-description">
+            {% if event.type == 'goal' %}
+            <strong>¡Gol de {{ event.player }}!</strong>
+            {% if event.assist %}<small>Asistencia: {{ event.assist }}</small>{% endif %}
+            {% elif event.type == 'yellow' %}
+            <strong>Tarjeta amarilla · {{ event.player }}</strong>
+            {% else %}
+            <strong>Tarjeta roja · {{ event.player }}</strong>
+            {% endif %}
+            <small>{{ event.team }}</small>
+          </span>
+        </li>
+        {% else %}
+        <li class="match-event-empty">No se registraron goles ni tarjetas en este partido.</li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% elif not pending_season_decision %}
+    <form action="{{ url_for('play_tournament_round') }}" method="post" class="match-play-action">
+      <button class="button button-primary" type="submit">
+        JUGAR PARTIDO · FECHA {{ "%02d"|format(active_round) }} →
+      </button>
+      <small>Viví la simulación con el relato de goles y tarjetas.</small>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% endif %}
+  <div class="tournament-dashboard-grid">
+    <div class="tournament-simulation">
+  {% if round_complete %}
+  <div class="tournament-results">
+    <h3>Resultados de la fecha {{ active_round }}</h3>
+    <div class="fixture-list">
+      {% for match in active_round_matches %}
+      <article class="fixture-row {% if match.home_club_id is none or match.away_club_id is none %}career-fixture-row{% endif %}">
+        <span class="fixture-round">FECHA <strong>{{ "%02d"|format(match.round_number) }}</strong></span>
+        <span class="fixture-date">{{ match.played_on }}</span>
+        <div class="fixture-teams">
+          <strong>{{ match.home_team }}</strong>
+          <span class="match-score">{{ match.home_score }} - {{ match.away_score }}</span>
+          <strong>{{ match.away_team }}</strong>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+    {% if active_round < tournament_rounds and not pending_season_decision %}
+    <form action="{{ url_for('advance_tournament_round') }}" method="post">
+      <button class="button button-primary" type="submit">AVANZAR A FECHA {{ "%02d"|format(active_round + 1) }} →</button>
+    </form>
+    {% elif active_round == tournament_rounds %}
+    <p class="tournament-finished">Se jugaron todas las fechas. ¡Mirá la tabla final!</p>
+    {% endif %}
+  {% else %}
+    {% if not career_has_active_match %}
+    <p class="tournament-bye">Tu club descansa esta fecha; se simulan los partidos de la jornada y luego avanzás a la próxima.</p>
+    {% endif %}
+    <div class="tournament-results">
+      <h3>Partidos de la fecha {{ active_round }}</h3>
+      <div class="fixture-list">
+        {% for match in active_round_matches %}
+        <article class="fixture-row {% if match.home_club_id is none or match.away_club_id is none %}career-fixture-row{% endif %}">
+          <span class="fixture-round">FECHA <strong>{{ "%02d"|format(match.round_number) }}</strong></span>
+          <span class="fixture-date">{{ match.played_on }}</span>
+          <div class="fixture-teams">
+            <strong>{{ match.home_team }}</strong>
+            <small class="fixture-vs">VS</small>
+            <strong>{{ match.away_team }}</strong>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+    {% if not pending_season_decision and not career_has_active_match %}
+    <form action="{{ url_for('play_tournament_round') }}" method="post">
+      <button class="button button-primary" type="submit">SIMULAR FECHA {{ "%02d"|format(active_round) }} →</button>
+    </form>
+    {% endif %}
+  {% endif %}
+    </div>
+
+  {% if standings %}
+  <div class="tournament-standings tournament-standings-side">
+    <h3>Tabla de posiciones</h3>
+    <div class="standings-wrap">
+      <table class="standings-table">
+        <thead>
+          <tr><th>#</th><th>EQUIPO</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>DG</th><th>PTS</th></tr>
+        </thead>
+        <tbody>
+          {% for team in standings %}
+          <tr class="{% if team.position == 1 %}standing-champion{% elif team.position in [2, 3] %}standing-libertadores{% elif team.position >= 4 and team.position <= 9 %}standing-sudamericana{% endif %}{% if team.is_relegation_candidate|default(false) %} standing-relegation{% endif %}{% if team.is_career %} career-standing{% endif %}">
+            <td>{{ team.position }}</td>
+            <td>
+              <span class="standing-team">
+                {% if team.logo %}
+                <img src="{{ team.logo }}" alt="" class="standing-crest" loading="lazy"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                <span class="standing-crest-fallback" aria-hidden="true" style="display:none;">{{ team.name[:1] }}</span>
+                {% else %}
+                <span class="standing-crest-fallback" aria-hidden="true">{{ team.name[:1] }}</span>
+                {% endif %}
+                <span>{{ team.name }}</span>
+              </span>
+            </td>
+            <td>{{ team.played }}</td>
+            <td>{{ team.wins }}</td>
+            <td>{{ team.draws }}</td>
+            <td>{{ team.losses }}</td>
+            <td>{{ team.goal_difference }}</td>
+            <td><strong>{{ team.points }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+  </div>
+
+{% if copa_is_matchday %}
+<section class="panel copa-season-panel">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">FECHA {{ "%02d"|format(copa_scheduled_matchday) }} · COPA ARGENTINA</p>
+      <h2>Ronda {{ copa_progress.current_round }}</h2>
+    </div>
+    <span class="round-pill">{{ copa_draw_count }} / {{ copa_draw_total }} CRUCES REVELADOS</span>
+  </div>
+  <p class="muted">Esta ronda se juega junto con la fecha de liga. Jugá el cruce de tu club o simulá toda la ronda para resolver los demás partidos y avanzar la llave.</p>
+  <div class="copa-season-match-list">
+    {% for match in copa_current_matches %}
+    <article class="copa-season-match">
+      <span class="copa-match-number">CRUCE {{ "%02d"|format(match.match_number) }}</span>
+      {% if match.revealed %}
+      <strong>{{ match.home_team }}</strong>
+      {% if match.is_bye %}
+      <span class="copa-bye-label">PASA LIBRE</span>
+      {% elif match.winner_team %}
+      <span class="match-score">{{ match.home_score }}{% if match.home_penalties is not none %} ({{ match.home_penalties }}){% endif %} - {{ match.away_score }}{% if match.away_penalties is not none %} ({{ match.away_penalties }}){% endif %}</span>
+      {% else %}
+      <span class="fixture-vs">VS</span>
+      {% endif %}
+      {% if not match.is_bye %}<strong>{{ match.away_team }}</strong>{% endif %}
+      {% if not match.is_bye and not match.winner_team %}
+      <form action="{{ url_for('play_copa_argentina_match_route', match_id=match.id) }}" method="post">
+        <input type="hidden" name="return_to" value="fixtures">
+        <button class="button button-small {% if match.home_club_id is none or match.away_club_id is none %}button-primary{% else %}button-secondary{% endif %}" type="submit">
+          {% if match.home_club_id is none or match.away_club_id is none %}JUGAR{% else %}SIMULAR{% endif %}
+        </button>
+      </form>
+      {% endif %}
+      {% else %}
+      <strong class="copa-hidden-team">Cruce pendiente de sorteo</strong>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  <div class="copa-actions">
+    {% if copa_draw_count < copa_draw_total %}
+    <form action="{{ url_for('reveal_copa_argentina_draw') }}" method="post">
+      <input type="hidden" name="return_to" value="fixtures">
+      <button class="button button-secondary" type="submit">REVELAR CRUCE {{ copa_draw_count + 1 }} →</button>
+    </form>
+    <form action="{{ url_for('reveal_all_copa_argentina_matches') }}" method="post">
+      <input type="hidden" name="return_to" value="fixtures">
+      <button class="button button-primary" type="submit">SORTEAR TODOS LOS CRUCES →</button>
+    </form>
+    {% endif %}
+    {% if copa_round_complete %}
+    <form action="{{ url_for('advance_copa_argentina') }}" method="post">
+      <input type="hidden" name="return_to" value="fixtures">
+      <button class="button button-primary" type="submit">
+        {% if copa_draw_total == 1 %}DEFINIR CAMPEÓN →{% else %}SORTEAR SIGUIENTE RONDA →{% endif %}
+      </button>
+    </form>
+    {% else %}
+    <form action="{{ url_for('simulate_copa_argentina_round_route') }}" method="post">
+      <input type="hidden" name="return_to" value="fixtures">
+      <button class="button button-primary" type="submit">SIMULAR TODA LA RONDA →</button>
+    </form>
+    {% endif %}
+    <a class="button button-secondary" href="{{ url_for('copa_argentina') }}">VER LLAVE COMPLETA →</a>
+  </div>
+</section>
+{% endif %}
+</section>
+{% endif %}
+{% if career.phase == 'season' and standings and not playoff_results_hidden %}
+<section class="panel league-leaders">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">ESTADÍSTICAS DE LA TEMPORADA · {{ career.division|upper }}</p>
+      <h2>Rendimiento individual</h2>
+    </div>
+    <span class="round-pill">FECHA {{ "%02d"|format(active_round) }}</span>
+  </div>
+  <div class="league-leaders-grid">
+    {% for title, metric, leaders in [
+      ('Máximos goleadores', 'GOLES', league_scorers),
+      ('Máximos asistentes', 'ASISTENCIAS', league_assisters)
+    ] %}
+    <section class="league-leader-card">
+      <h3>{{ title }}</h3>
+      <div class="standings-wrap">
+        <table class="standings-table league-leader-table">
+          <thead>
+            <tr><th>#</th><th>JUGADOR</th><th>EQUIPO</th><th>{{ metric }}</th></tr>
+          </thead>
+          <tbody>
+            {% for player in leaders %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ player.name }}</td>
+              <td>{{ player.team_name or '—' }}</td>
+              <td><strong>{{ player.goals if metric == 'GOLES' else player.assists }}</strong></td>
+            </tr>
+            {% else %}
+            <tr><td class="league-leader-empty" colspan="4">Todavía no hay {{ 'goles' if metric == 'GOLES' else 'asistencias' }} registrados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endfor %}
+    {% if league_season_complete %}
+    <section class="league-leader-card annual-awards-card">
+      <h3>Premios de la temporada</h3>
+      <div class="standings-wrap">
+        <table class="standings-table league-awards-table">
+          <thead>
+            <tr><th>PREMIO</th><th>JUGADOR</th><th>EQUIPO</th></tr>
+          </thead>
+          <tbody>
+            {% for award in season_individual_awards %}
+            <tr>
+              <td>{{ award.title }}</td>
+              <td><strong>{{ award.name }}</strong></td>
+              <td>{{ award.team_name }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% if continental_competition and not playoff_results_hidden %}
+<section class="panel continental-qualification {{ continental_competition }}">
+  <img
+    src="{{ url_for('static', filename='competitions/' ~ continental_competition ~ '.png') }}"
+    alt="Emblema de la CONMEBOL {{ 'Libertadores' if continental_competition == 'libertadores' else 'Sudamericana' }}"
+    class="continental-logo">
+  <div>
+    {% if continental_competition == 'libertadores' %}
+    <p class="eyebrow">CLASIFICACIÓN INTERNACIONAL · CONMEBOL</p>
+    <h2>{% if standings and standings[0].is_career %}¡Campeón y clasificado a la Libertadores!{% else %}¡Clasificado a la Libertadores!{% endif %}</h2>
+    <p class="muted">{% if standings and standings[0].is_career %}Saliste campeón del torneo y, por tu posición, clasificaste a la CONMEBOL Libertadores.{% else %}Terminaste entre los tres primeros y clasificaste a la CONMEBOL Libertadores.{% endif %}</p>
+    {% else %}
+    <p class="eyebrow">CLASIFICACIÓN INTERNACIONAL · CONMEBOL</p>
+    <h2>¡Clasificado a la Sudamericana!</h2>
+    <p class="muted">Terminaste entre el cuarto y el noveno puesto y clasificaste a la CONMEBOL Sudamericana.</p>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% if season_movements and not playoff_results_hidden %}
+<section class="panel division-movements">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">TEMPORADA {{ movement_season }}</p>
+      <h2>Ascensos y descensos entre ligas</h2>
+    </div>
+  </div>
+  <div class="division-movements-grid">
+    <div class="division-movement-group promoted">
+      <h3>↑ Ascienden a Primera División</h3>
+      {% set promoted_movements = namespace(found=false) %}
+      {% for movement in season_movements %}
+        {% if movement.description.startswith('Ascenso') %}
+        {% set promoted_movements.found = true %}
+        <p>{{ movement.team_name }}</p>
+        {% endif %}
+      {% endfor %}
+      {% if not promoted_movements.found %}
+      <p class="movement-empty">No se registraron ascensos para esta temporada.</p>
+      {% endif %}
+    </div>
+    <div class="division-movement-group relegated">
+      <h3>↓ Descienden a Primera Nacional</h3>
+      {% set relegated_movements = namespace(found=false) %}
+      {% for movement in season_movements %}
+        {% if movement.description.startswith('Descenso') %}
+        {% set relegated_movements.found = true %}
+        <p>{{ movement.team_name }}</p>
+        {% endif %}
+      {% endfor %}
+      {% if not relegated_movements.found %}
+      <p class="movement-empty">
+        {% if can_start_next_season %}
+        No hay descensos registrados para esta temporada.
+        {% else %}
+        Los descensos se definen al finalizar la Primera División.
+        {% endif %}
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% if awards and not playoff_results_hidden %}
+<section class="panel season-awards">
+  {% for award in awards %}
+  <div class="season-award">
+    {% if award.award_type.startswith('relegation_') %}
+    <span class="award-relegation-arrow" aria-label="Descenso">↓</span>
+    {% elif award.award_type.startswith('champion_') and career.division == 'Primera División' %}
+    <img class="award-image" src="{{ url_for('static', filename='competitions/primera-division-trophy-cutout.png') }}" alt="Trofeo de la Primera División">
+    {% elif award.award_type.startswith('champion_') %}
+    <img class="award-image" src="{{ url_for('static', filename='competitions/league-trophy-cutout.png') }}" alt="Trofeo de la liga">
+    {% elif award.award_type.startswith('promotion_') or award.award_type.startswith('playoff_promotion_') %}
+    <img class="award-image" src="{{ url_for('static', filename='competitions/league-trophy-cutout.png') }}" alt="Trofeo de ascenso">
+    {% elif award.award_type.startswith('copa_argentina_champion_') %}
+    <img class="award-image" src="{{ url_for('static', filename='competitions/copa-argentina-trophy-cutout.png') }}" alt="Trofeo de la Copa Argentina">
+    {% elif award.award_type.startswith('league_prize_') %}
+    <span class="award-trophy award-prize-icon" aria-label="Premio económico">$</span>
+    {% else %}
+    <span class="award-trophy">🏆</span>
+    {% endif %}
+    <div>
+      {% if award.award_type.startswith('playoff_promotion_') %}
+      <p class="eyebrow">Ganador del playoff de ascenso</p>
+      {% else %}
+      <p class="eyebrow">{{ award.description }}</p>
+      {% endif %}
+      <h2>{{ award.team_name }}</h2>
+      {% if award.award_type.startswith('copa_argentina_champion_') %}
+        {% if award.team_name == career.club_name %}
+        <p class="muted">¡Campeón de la Copa Argentina! Se sumaron $3.500.000 al presupuesto.</p>
+        {% else %}
+        <p class="muted">Campeón de la Copa Argentina.</p>
+        {% endif %}
+      {% elif award.award_type.startswith('league_prize_') %}
+        {% if award.team_name == career.club_name %}
+        <p class="muted">Premio por tu puesto final: {{ career_prize|money }} agregados al presupuesto.</p>
+        {% else %}
+        <p class="muted">Premio económico correspondiente a su puesto en la tabla.</p>
+        {% endif %}
+      {% elif award.award_type.startswith('relegation_') %}
+        {% if award.team_name == career.club_name %}
+        <p class="muted">Terminaste en zona de descenso. La próxima temporada jugarás en Primera Nacional.</p>
+        {% else %}
+        <p class="muted">{{ award.team_name }} jugará en Primera Nacional la próxima temporada.</p>
+        {% endif %}
+      {% elif award.award_type.startswith('champion') %}
+        {% if award.team_name == career.club_name %}
+          {% if career.division == 'Primera División' %}
+        <p class="muted">¡Campeón de la liga y clasificado a la CONMEBOL Libertadores!</p>
+          {% else %}
+        <p class="muted">¡Campeón de la liga! Se sumaron {{ career_prize|money }} al presupuesto.</p>
+          {% endif %}
+        {% else %}
+        <p class="muted">Campeón de la liga.</p>
+        {% endif %}
+      {% elif award.award_type.startswith('promotion_') %}
+        {% if award.team_name == career.club_name %}
+        <p class="muted">Ascenso directo a Primera División.</p>
+        {% else %}
+        <p class="muted">Ascenso directo de {{ award.team_name }} a Primera División.</p>
+        {% endif %}
+      {% else %}
+        {% if award.team_name == career.club_name %}
+        <p class="muted">Clasificado a Primera División. Se sumaron $2.500.000 al presupuesto.</p>
+        {% else %}
+        <p class="muted">Clasificado a Primera División.</p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% if playoff_stage and playoff_stage != 'complete' %}
+<section class="panel promotion-playoff" id="promotion-playoff">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">PRIMERA NACIONAL · ASCENSO</p>
+      <h2>Playoff de promoción</h2>
+    </div>
+    <span class="round-pill">{{ playoff_stage_labels[playoff_stage] }}</span>
+  </div>
+  <p class="muted tournament-intro">Los puestos 2.º al 9.º juegan por el segundo ascenso a Primera División. Si hay empate, se define por penales.</p>
+  {% if playoff_match_dashboard %}
+  <section class="match-dashboard match-dashboard-played playoff-match-dashboard">
+    <div class="match-dashboard-scoreboard">
+      <div class="match-dashboard-team">
+        {% if playoff_match_dashboard.home.is_career %}
+        <img src="{{ url_for('club_crest') }}" alt="Escudo {{ playoff_match_dashboard.home.name }}" class="match-team-crest">
+        {% elif playoff_match_dashboard.home.logo %}
+        <img src="{{ playoff_match_dashboard.home.logo }}" alt="Escudo {{ playoff_match_dashboard.home.name }}" class="match-team-crest">
+        {% else %}
+        <span class="match-team-crest match-team-crest-fallback">{{ playoff_match_dashboard.home.name[:1]|upper }}</span>
+        {% endif %}
+        {{ team_shirt(playoff_match_dashboard.home, 'playoff-home') }}
+        <strong>{{ playoff_match_dashboard.home.name }}</strong>
+      </div>
+      <div class="match-dashboard-score">
+        <p class="eyebrow" {% if playoff_live_simulation %}id="match-live-clock"{% endif %}>
+          {% if playoff_live_simulation %}EN VIVO · 0′{% else %}{{ playoff_match_dashboard.played_on }}{% endif %}
+        </p>
+        <strong id="match-live-score"
+                {% if playoff_live_simulation %}
+                data-home-score="{{ playoff_match_dashboard.home_score }}"
+                data-away-score="{{ playoff_match_dashboard.away_score }}"
+                {% endif %}>
+          {% if playoff_results_hidden and not playoff_live_simulation %}VS{% elif playoff_live_simulation %}0 <span>—</span> 0{% else %}{{ playoff_match_dashboard.home_score }} <span>—</span> {{ playoff_match_dashboard.away_score }}{% endif %}
+        </strong>
+        {% if playoff_live_simulation %}
+        <span id="match-live-final-status"
+              data-status="{% if playoff_match_dashboard.penalties_complete %}DEFINIDO POR PENALES{% elif playoff_match_dashboard.home_score == playoff_match_dashboard.away_score %}EMPATE · PENALES{% else %}PARTIDO FINALIZADO{% endif %}"
+              hidden></span>
+        {% endif %}
+        <small {% if playoff_live_simulation %}id="match-live-status"{% endif %}>
+          {% if playoff_live_simulation %}SIMULACIÓN EN VIVO{% elif playoff_match_dashboard.penalties_complete %}DEFINIDO POR PENALES{% elif playoff_match_dashboard.winner_team %}PARTIDO FINALIZADO{% else %}ESPERANDO DEFINICIÓN{% endif %}
+        </small>
+      </div>
+      <div class="match-dashboard-team away">
+        {% if playoff_match_dashboard.away.is_career %}
+        <img src="{{ url_for('club_crest') }}" alt="Escudo {{ playoff_match_dashboard.away.name }}" class="match-team-crest">
+        {% elif playoff_match_dashboard.away.logo %}
+        <img src="{{ playoff_match_dashboard.away.logo }}" alt="Escudo {{ playoff_match_dashboard.away.name }}" class="match-team-crest">
+        {% else %}
+        <span class="match-team-crest match-team-crest-fallback">{{ playoff_match_dashboard.away.name[:1]|upper }}</span>
+        {% endif %}
+        {{ team_shirt(playoff_match_dashboard.away, 'playoff-away') }}
+        <strong>{{ playoff_match_dashboard.away.name }}</strong>
+      </div>
+    </div>
+    <div class="match-dashboard-lineups">
+      {% for team in [playoff_match_dashboard.home, playoff_match_dashboard.away] %}
+      <section class="match-lineup">
+        <div class="match-lineup-heading">
+          <div>
+            <p class="eyebrow">{% if team.is_career %}TU EQUIPO{% else %}RIVAL{% endif %}</p>
+            <h3>{{ team.name }}</h3>
+          </div>
+          <span class="round-pill">{{ team.formation }}</span>
+        </div>
+        <div class="match-lineup-rows">
+          {% for line in team.lines %}
+          <div class="match-lineup-row">
+            <span class="match-lineup-position">{{ line.position }}</span>
+            <ul>
+              {% for player in line.players %}
+              <li title="{{ player.name }} · {{ player.position }} · {{ player.overall }} OVR">
+                <strong>{{ player.name }}</strong>
+                <small>{{ player.position }} · {{ player.overall }}</small>
+              </li>
+              {% else %}
+              <li class="match-lineup-empty">Sin jugadores disponibles</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+    {% if playoff_match_dashboard.played and (playoff_live_simulation or not playoff_results_hidden) %}
+    <section class="match-live-panel {% if playoff_live_simulation %}match-live-running{% endif %}"
+             id="match-live-panel">
+      <div class="match-live-heading">
+        <div>
+          <p class="eyebrow">RELATO DEL PLAYOFF</p>
+          <h3>Incidencias del partido</h3>
+        </div>
+        <span class="match-live-progress-label" id="match-live-progress-label">
+          {% if playoff_live_simulation %}0′ / 90′{% else %}FINAL{% endif %}
+        </span>
+      </div>
+      <div class="match-live-progress"><span id="match-live-progress"></span></div>
+      <ol class="match-event-list" id="match-event-list">
+        {% for event in playoff_match_dashboard.events %}
+        <li class="match-event match-event-{{ event.type }} {% if playoff_live_simulation %}match-event-pending{% endif %}"
+            data-minute="{{ event.minute }}" data-type="{{ event.type }}" data-side="{{ event.side }}">
+          <span class="match-event-minute">{{ event.minute }}′</span>
+          <span class="match-event-icon" aria-hidden="true">
+            {% if event.type == 'goal' %}⚽{% elif event.type == 'yellow' %}🟨{% else %}🟥{% endif %}
+          </span>
+          <span class="match-event-description">
+            {% if event.type == 'goal' %}
+            <strong>¡Gol de {{ event.player }}!</strong>
+            {% if event.assist %}<small>Asistencia: {{ event.assist }}</small>{% endif %}
+            {% elif event.type == 'yellow' %}
+            <strong>Tarjeta amarilla · {{ event.player }}</strong>
+            {% else %}
+            <strong>Tarjeta roja · {{ event.player }}</strong>
+            {% endif %}
+            <small>{{ event.team }}</small>
+          </span>
+        </li>
+        {% else %}
+        <li class="match-event-empty">No se registraron incidencias.</li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+    {% if playoff_match_dashboard.played and not playoff_match_dashboard.winner_team %}
+    <section class="playoff-shootout" id="playoff-shootout"
+             data-simulate="{{ 'true' if request.args.get('penalty_live') == '1' else 'false' }}">
+      <div class="match-live-heading">
+        <div>
+          <p class="eyebrow">DEFINICIÓN DESDE EL PUNTO PENAL</p>
+          <h3>{% if playoff_match_dashboard.penalties_complete %}Penales {{ playoff_match_dashboard.home_penalties }} – {{ playoff_match_dashboard.away_penalties }}{% else %}Definición en curso{% endif %}</h3>
+        </div>
+        <span class="round-pill">{% if request.args.get('penalty_live') == '1' %}TANDA SIMULADA{% else %}TANDA EN CURSO{% endif %}</span>
+      </div>
+      <p class="muted">Vos definís los remates de tu equipo y hacia dónde se tira tu arquero; el rival ejecuta sus penales automáticamente.</p>
+      {% if playoff_match_dashboard.penalties_complete %}
+      <div class="penalty-kick-list">
+        {% for kick in playoff_match_dashboard.penalty_kicks %}
+        <span class="penalty-kick {% if kick.scored %}penalty-kick-scored{% else %}penalty-kick-missed{% endif %}"
+              data-side="{{ kick.side }}" data-direction="{{ kick.direction }}"
+              title="Penal {{ loop.index }} · {{ 'Gol' if kick.scored else 'Atajado' }}">
+          {{ '●' if kick.scored else '×' }}
+        </span>
+        {% else %}
+        <small>La tanda todavía no tiene remates.</small>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <form action="{{ url_for('take_promotion_playoff_penalty') }}" method="post" class="penalty-choice-form"
+            {% if playoff_live_simulation %}hidden{% endif %}>
+        {% if playoff_penalty_turn == playoff_match_dashboard.user_side %}
+        <p>Tu jugador patea el próximo penal. Elegí la dirección del remate:</p>
+        {% set penalty_action = 'shot' %}
+        {% else %}
+        <p>El rival patea el próximo penal. Elegí hacia dónde se tira tu arquero:</p>
+        {% set penalty_action = 'save' %}
+        {% endif %}
+        <div class="penalty-shootout-scene" id="penalty-scene" data-action="{{ penalty_action }}">
+          <div class="penalty-goal" aria-label="Arco; elegí izquierda, centro o derecha">
+            {% for direction, label, arrow in [('left', 'IZQUIERDA', '↖'), ('center', 'AL MEDIO', '↑'), ('right', 'DERECHA', '↗')] %}
+            <label class="penalty-direction-option" title="{{ label }}">
+              <input type="radio" name="direction" value="{{ direction }}" aria-label="{{ label }}" required>
+              <span><b aria-hidden="true">{{ arrow }}</b><strong>{{ label }}</strong></span>
+            </label>
+            {% endfor %}
+            <span class="penalty-goalkeeper" aria-hidden="true">🧤</span>
+            <span class="penalty-ball" aria-hidden="true">⚽</span>
+          </div>
+          <p>Elegí un sector del arco</p>
+        </div>
+        <button class="button button-primary" type="submit">EJECUTAR PENAL →</button>
+      </form>
+      <form action="{{ url_for('take_promotion_playoff_penalty') }}" method="post" class="penalty-simulate-form"
+            {% if playoff_live_simulation %}hidden{% endif %}>
+        <input type="hidden" name="action" value="simulate">
+        <button class="button button-secondary" type="submit">SIMULAR PENALES →</button>
+        <small>La tanda completa se resuelve automáticamente y se muestra penal por penal.</small>
+      </form>
+    </section>
+    {% elif playoff_match_dashboard.winner_team and not playoff_results_hidden %}
+    <p class="playoff-winner">
+      Clasifica: {{ playoff_match_dashboard.winner_team }}
+      {% if playoff_match_dashboard.penalties_complete %}
+      · {{ playoff_match_dashboard.home_penalties }}–{{ playoff_match_dashboard.away_penalties }} en los penales.
+      {% else %}
+      · Ganó en los 90′.
+      {% endif %}
+    </p>
+    {% if playoff_match_dashboard.penalties_complete and request.args.get('penalty_live') == '1' %}
+    <section class="playoff-shootout" id="playoff-shootout" data-simulate="true">
+      <div class="match-live-heading">
+        <div>
+          <p class="eyebrow">SIMULACIÓN DE LA TANDA</p>
+          <h3>Definición penal por penal</h3>
+        </div>
+        <span class="round-pill">FINALIZADA</span>
+      </div>
+      <p class="muted">La tanda terminó {{ playoff_match_dashboard.home_penalties }}–{{ playoff_match_dashboard.away_penalties }}. Acá podés ver cada ejecución.</p>
+      <div class="penalty-kick-list">
+        {% for kick in playoff_match_dashboard.penalty_kicks %}
+        <span class="penalty-kick {% if kick.scored %}penalty-kick-scored{% else %}penalty-kick-missed{% endif %}"
+              data-side="{{ kick.side }}" data-direction="{{ kick.direction }}"
+              title="Penal {{ loop.index }} · {{ 'Gol' if kick.scored else 'Atajado' }}">
+          {{ '●' if kick.scored else '×' }}
+        </span>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+    {% endif %}
+  </section>
+  {% endif %}
+  {% if not playoff_results_hidden %}
+  <div class="playoff-matches">
+    {% for match in playoff_matches %}
+    <article class="playoff-match {% if match.home_club_id is none or match.away_club_id is none %}career-fixture-row{% endif %}">
+      <span class="playoff-seeds">{{ match.home_seed }}.° vs {{ match.away_seed }}.°</span>
+      <strong>{{ match.home_team }}</strong>
+      {% if match.home_score is not none %}
+      <span class="match-score">{{ match.home_score }}{% if match.home_penalties is not none %} ({{ match.home_penalties }}){% endif %} - {{ match.away_score }}{% if match.away_penalties is not none %} ({{ match.away_penalties }}){% endif %}</span>
+      {% else %}
+      <span class="fixture-vs">VS</span>
+      {% endif %}
+      <strong>{{ match.away_team }}</strong>
+      {% if match.winner_team %}
+      <small class="playoff-winner">Clasifica: {{ match.winner_team }}</small>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% if playoff_stage_complete and not playoff_results_hidden %}
+  <form action="{{ url_for('advance_promotion_playoff_stage') }}" method="post">
+    {% if playoff_stage == 'final' %}
+    <button class="button button-primary" type="submit">CONFIRMAR ASCENSO →</button>
+    {% elif not playoff_results_hidden %}
+    <button class="button button-primary" type="submit">AVANZAR A {{ playoff_stage_labels['semifinal'] if playoff_stage == 'quarterfinal' else playoff_stage_labels['final'] }} →</button>
+    {% endif %}
+  </form>
+  {% else %}
+  <form action="{{ url_for('play_promotion_playoff') }}" method="post">
+    <button class="button button-primary" type="submit">JUGAR PARTIDO · {{ playoff_stage_labels[playoff_stage]|upper }} →</button>
+  </form>
+  {% endif %}
+  {% endif %}
+</section>
+{% elif playoff_stage == 'complete' %}
+<section class="panel promotion-playoff playoff-complete" id="promotion-playoff">
+  <p class="eyebrow">PLAYOFF DE ASCENSO</p>
+  <h2>Playoff finalizado</h2>
+  <p class="muted">El ascenso a Primera División ya fue definido.</p>
+</section>
+{% endif %}
+{% if league_season_complete and copa_is_pending and not playoff_results_hidden %}
+<section class="panel next-season-panel">
+  <div>
+    <p class="eyebrow">COPA ARGENTINA EN JUEGO</p>
+    <h2>¿Querés terminar la Copa antes de pasar de temporada?</h2>
+    <p class="muted">La Copa es opcional: podés jugar sus rondas o iniciar la próxima temporada cuando quieras.</p>
+  </div>
+  <a class="button button-primary" href="{{ url_for('copa_argentina') }}">IR A LA COPA ARGENTINA →</a>
+</section>
+{% endif %}
+{% if can_start_next_season and not playoff_results_hidden %}
+<section class="panel next-season-panel">
+  <div>
+    <p class="eyebrow">NUEVO DESAFÍO</p>
+    <h2>¿Listo para la próxima temporada?</h2>
+    <p class="muted">Conservás tu plantel y presupuesto. Vas a poder sumar hasta 5 jugadores más para la próxima temporada.</p>
+  </div>
+  <form action="{{ url_for('begin_new_season') }}" method="post">
+    <button class="button button-primary" type="submit">COMENZAR TEMPORADA {{ season_number + 1 }} →</button>
+  </form>
+</section>
+{% endif %}
+{% endif %}
+{% if career.phase != 'season' %}
+<section class="panel fixture-panel">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">CAMINO A LA GLORIA</p>
+      <h2>Fixture oficial de liga · 2026</h2>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span class="round-pill">{{ career.division }}</span>
+      <form action="{{ url_for('api_sync') }}" method="post" style="display: inline;">
+        <button type="submit" class="button button-small" style="min-height: 27px; padding: 0 10px; font-size: 8px;" title="Actualizar calendario desde la API">↻ API SYNC</button>
+      </form>
+    </div>
+  </div>
+  {% if matches %}
+  <div class="fixture-list">
+    {% for match in matches %}
+    <article class="fixture-row">
+      <span class="fixture-round">FECHA <strong>{{ "%02d"|format(match.matchday) }}</strong></span>
+      <span class="fixture-date">{{ match.played_on }}</span>
+      <div class="fixture-teams">
+        <span class="fixture-team home">
+          {% if match.home_logo %}
+            <img src="{{ match.home_logo }}" alt="Escudo {{ match.home_name }}" class="fixture-crest-mini" loading="lazy" onerror="this.style.display='none';">
+          {% endif %}
+          <strong>{{ match.home_name }}</strong>
+        </span>
+        <small class="fixture-vs">VS</small>
+        <span class="fixture-team away">
+          <strong>{{ match.away_name }}</strong>
+          {% if match.away_logo %}
+            <img src="{{ match.away_logo }}" alt="Escudo {{ match.away_name }}" class="fixture-crest-mini" loading="lazy" onerror="this.style.display='none';">
+          {% endif %}
+        </span>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <span>▦</span>
+    <h3>Fixture 2026 en proceso de sincronización</h3>
+    <p>Hacé clic a continuación para sincronizar el fixture de {{ career.division }} con la API Live Football Data.</p>
+    <form action="{{ url_for('api_sync') }}" method="post" style="margin-top: 15px;">
+      <button type="submit" class="button button-small">Sincronizar Fixture 2026</button>
+    </form>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+<script>
+  (() => {
+    const shootout = document.querySelector('#playoff-shootout[data-simulate="true"]');
+    if (!shootout) return;
+
+    const kicks = [...shootout.querySelectorAll('.penalty-kick')];
+    if (!kicks.length) return;
+    kicks.forEach((kick) => kick.classList.add('penalty-kick-animated'));
+
+    let index = 0;
+    const timer = window.setInterval(() => {
+      kicks[index]?.classList.add('penalty-kick-revealed');
+      index += 1;
+      if (index >= kicks.length) window.clearInterval(timer);
+    }, 420);
+  })();
+</script>
+<script>
+  (() => {
+    const form = document.querySelector('.penalty-choice-form');
+    const scene = document.querySelector('#penalty-scene');
+    if (!form || !scene) return;
+
+    form.addEventListener('change', (event) => {
+      if (event.target instanceof HTMLInputElement && event.target.name === 'direction') {
+        scene.dataset.direction = event.target.value;
+      }
+    });
+  })();
+</script>
+{% if live_match_simulation or playoff_live_simulation %}
+<script>
+  (() => {
+    const isPlayoffMatch = {{ 'true' if playoff_live_simulation else 'false' }};
+    const matchRoot = isPlayoffMatch
+      ? document.querySelector('.playoff-match-dashboard')
+      : document;
+    const panel = matchRoot?.querySelector('#match-live-panel');
+    const score = matchRoot?.querySelector('#match-live-score');
+    const events = panel
+      ? [...panel.querySelectorAll('.match-event[data-minute]')]
+      : [];
+    if (!panel || !score) return;
+
+    const finalHome = Number(score.dataset.homeScore);
+    const finalAway = Number(score.dataset.awayScore);
+    const clock = document.querySelector('#match-live-clock');
+    const status = document.querySelector('#match-live-status');
+    const finalStatus = document.querySelector('#match-live-final-status');
+    const shootout = document.querySelector('#playoff-shootout');
+    const progress = document.querySelector('#match-live-progress');
+    const progressLabel = document.querySelector('#match-live-progress-label');
+    let minute = 0;
+    let homeGoals = 0;
+    let awayGoals = 0;
+
+    const timer = window.setInterval(() => {
+      minute = Math.min(90, minute + 1);
+      if (clock) clock.textContent = `EN VIVO · ${minute}′`;
+      if (progress) progress.style.width = `${minute / 90 * 100}%`;
+      if (progressLabel) progressLabel.textContent = `${minute}′ / 90′`;
+
+      for (const event of events) {
+        if (Number(event.dataset.minute) > minute || !event.classList.contains('match-event-pending')) continue;
+        event.classList.remove('match-event-pending');
+        event.classList.add('match-event-visible');
+        if (event.dataset.type === 'goal') {
+          if (event.dataset.side === 'home') homeGoals += 1;
+          else awayGoals += 1;
+          score.innerHTML = `${homeGoals} <span>—</span> ${awayGoals}`;
+        }
+      }
+
+      if (minute === 90) {
+        window.clearInterval(timer);
+        const finalMatchStatus = finalStatus?.dataset.status || 'PARTIDO FINALIZADO';
+        const needsPenalties = isPlayoffMatch && finalMatchStatus === 'EMPATE · PENALES';
+        if (needsPenalties) {
+          score.hidden = true;
+          panel.hidden = true;
+          if (clock) clock.textContent = 'DEFINICIÓN POR PENALES';
+          if (status) status.textContent = 'ESPERANDO DEFINICIÓN';
+        } else {
+          score.innerHTML = `${finalHome} <span>—</span> ${finalAway}`;
+          if (clock) clock.textContent = 'FINAL · 90′';
+          if (status) status.textContent = finalMatchStatus;
+        }
+        if (shootout) {
+          shootout.querySelectorAll('form').forEach((penaltyForm) => {
+            penaltyForm.hidden = false;
+          });
+        }
+        if (progressLabel) progressLabel.textContent = 'FINAL';
+        panel.classList.remove('match-live-running');
+        panel.classList.add('match-live-finished');
+        if (isPlayoffMatch && !needsPenalties) {
+          window.setTimeout(() => {
+            window.location.assign(`${window.location.pathname}#promotion-playoff`);
+          }, 800);
+        }
+      }
+    }, 110);
+  })();
+</script>
+{% endif %}
+{% endblock %}

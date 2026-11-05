@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img">
+  <circle cx="60" cy="60" r="55" fill="#122d3d" stroke="#d7b568" stroke-width="3"/>
+  <path d="M47 24h26l-3 13-7 9 2 24 11 8v7H44v-7l11-8 2-24-7-9-3-13Z" fill="#e1c174"/>
+  <path d="M42 25h12l-2 9H41l-7-9h8Zm36 0H66l2 9h11l7-9h-8Z" fill="#f3dfaa"/>
+  <path d="M50 93h20l5 8H45l5-8Zm-7 13h34v4H43z" fill="#d7b568"/>
+  <text x="60" y="17" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="7" font-weight="700" letter-spacing="1">CONMEBOL</text>
+  <text x="60" y="117" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="8" font-weight="700" letter-spacing="1">LIBERTADORES</text>
+</svg>

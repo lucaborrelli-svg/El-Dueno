@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Copa Argentina · Temporada {{ season_number }}{% endblock %}
+{% block content %}
+<div class="dashboard-heading">
+  <div>
+    <p class="eyebrow"><span class="eyebrow-line"></span> TEMPORADA {{ season_number }} <span class="eyebrow-separator">/</span> COPA NACIONAL</p>
+    <h1>Copa <em>Argentina.</em></h1>
+    <p class="muted">Eliminación a partido único entre Primera División, Primera Nacional y {{ career.club_name }}. Cada empate se define por penales.</p>
+  </div>
+  <div class="header-actions-wrap">
+    <a class="button button-secondary" href="{{ url_for('fixtures') }}">VOLVER AL TORNEO →</a>
+  </div>
+</div>
+
+<section class="panel copa-prizes">
+  <div>
+    <p class="eyebrow">PREMIOS DEL TORNEO</p>
+    <h2>$3.500.000 para el campeón</h2>
+    <p class="muted">El premio se acredita automáticamente al presupuesto del club cuando queda eliminado o gana la final.</p>
+  </div>
+  <div class="copa-prize-ladder">
+    <span><strong>$3.500.000</strong> Campeón</span>
+    <span><strong>$2.000.000</strong> Finalista</span>
+    <span><strong>$1.000.000</strong> Semifinal</span>
+    <span><strong>$500.000</strong> Cuartos</span>
+    <span><strong>$350.000</strong> Rondas intermedias</span>
+    <span><strong>$250.000</strong> Rondas iniciales</span>
+  </div>
+</section>
+
+{% if career.phase != 'season' %}
+<section class="panel copa-draw-panel">
+  <p class="eyebrow">SORTEO AL COMENZAR LA TEMPORADA</p>
+  <h2>La Copa está por empezar</h2>
+  <p class="muted">Terminá el mercado y comenzá la temporada para sortear los cruces de todos los equipos de Primera y Primera Nacional.</p>
+  {% if career.phase == 'market' %}
+  <a class="button button-primary" href="{{ url_for('market') }}">IR AL MERCADO →</a>
+  {% else %}
+  <a class="button button-primary" href="{{ url_for('dashboard') }}">VOLVER A LA PRETEMPORADA →</a>
+  {% endif %}
+</section>
+{% elif progress and progress.is_complete %}
+<section class="panel copa-champion">
+  <p class="eyebrow">CAMPEÓN DE LA COPA ARGENTINA · TEMPORADA {{ season_number }}</p>
+  <h2 class="copa-champion-title">
+    <img
+      src="{{ url_for('static', filename='competitions/copa-argentina-trophy-cutout.png') }}"
+      alt="Trofeo de la Copa Argentina"
+      class="copa-champion-icon">
+    {{ progress.champion_team }}
+  </h2>
+  {% if career_won_copa %}
+  <div class="copa-trophy-celebration">
+    <img
+      src="{{ url_for('static', filename='competitions/copa-argentina-trophy-cutout.png') }}"
+      alt="Trofeo de la Copa Argentina"
+      class="copa-trophy-image">
+    <div>
+      <p class="eyebrow">GLORIA NACIONAL</p>
+      <h3>¡La Copa es tuya!</h3>
+      <p class="muted">Tu club se consagró campeón y recibió $3.500.000 para el presupuesto.</p>
+    </div>
+  </div>
+  {% endif %}
+  <p class="muted">El torneo terminó. Ya podés seguir con la liga y preparar la próxima temporada.</p>
+  <a class="button button-primary" href="{{ url_for('fixtures') }}">VOLVER AL TORNEO →</a>
+  {% include "_copa_bracket.html" %}
+</section>
+{% elif progress %}
+<section class="panel copa-draw-panel">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">SORTEO ALEATORIO · {{ bracket_rounds[progress.current_round - 1].label }}</p>
+      <h2>Los cruces se revelan uno por uno</h2>
+    </div>
+    <span class="round-pill">{{ draw_count }} / {{ draw_total }} REVELADOS</span>
+  </div>
+  <p class="muted">La Copa avanza junto con las fechas de liga. Podés jugar el partido de tu club, simular cada cruce por separado o resolver toda la ronda de una vez.</p>
+
+  {% include "_copa_bracket.html" %}
+
+  <div class="copa-actions">
+    {% if draw_count < draw_total %}
+    <form action="{{ url_for('reveal_copa_argentina_draw') }}" method="post">
+      <button class="button button-secondary" type="submit">REVELAR CRUCE {{ draw_count + 1 }} →</button>
+    </form>
+      <form action="{{ url_for('reveal_all_copa_argentina_matches') }}" method="post">
+        <button class="button button-primary" type="submit">SORTEAR TODOS LOS CRUCES →</button>
+      </form>
+    {% endif %}
+    {% if not round_complete %}
+    <form action="{{ url_for('simulate_copa_argentina_round_route') }}" method="post">
+      <button class="button button-primary" type="submit">SIMULAR TODA LA RONDA →</button>
+    </form>
+    {% endif %}
+    {% if round_complete %}
+    <form action="{{ url_for('advance_copa_argentina') }}" method="post">
+      <button class="button button-primary" type="submit">
+        {% if draw_total == 1 %}DEFINIR CAMPEÓN →{% else %}SORTEAR SIGUIENTE RONDA →{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
